@@ -1,0 +1,41 @@
+import Phaser from 'phaser';
+import { COLORS, FONT_FAMILY } from '../config';
+
+/** Referanstaki krem rengi altyazı kutuları gibi 9 dilimli panel (40 px kenar payı). */
+export function createPanel(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): Phaser.GameObjects.NineSlice {
+  return scene.add.nineslice(x, y, 'panel', undefined, width, height, 40, 40, 40, 40);
+}
+
+export function textStyle(
+  size: number,
+  weight: '500' | '700' | '800' = '700',
+  color: string = COLORS.text,
+): Phaser.Types.GameObjects.Text.TextStyle {
+  return {
+    fontFamily: FONT_FAMILY,
+    fontSize: `${size}px`,
+    fontStyle: weight,
+    color,
+  };
+}
+
+/** Numaralı altyazı rozeti: lacivert daire + ortasında rakam. */
+export function createBadge(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  label: string,
+  size = 64,
+): Phaser.GameObjects.Container {
+  const img = scene.add.image(0, 0, 'badge').setDisplaySize(size, size);
+  const txt = scene.add
+    .text(0, 1, label, textStyle(Math.round(size * 0.56), '800', '#ffffff'))
+    .setOrigin(0.5);
+  return scene.add.container(x, y, [img, txt]);
+}

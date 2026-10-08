@@ -17,6 +17,7 @@ const HEADLIGHT = { x: 498 - FRAME_CENTER.x, y: 178 - FRAME_CENTER.y };
 const JET = { x: 24 - FRAME_CENTER.x, y: 168 - FRAME_CENTER.y };
 
 const SCALE = 0.85;
+const LIGHT_ALPHA = 0.8;
 const MAX_SPEED_X = 470;
 const MAX_SPEED_Y = 300;
 const ACCEL_X = 820;
@@ -60,7 +61,9 @@ export class Submarine extends Phaser.GameObjects.Container {
       .image(HEADLIGHT.x - 6, HEADLIGHT.y, 'sub_light')
       .setOrigin(0, 0.5)
       .setBlendMode(Phaser.BlendModes.ADD)
-      .setAlpha(0.42);
+      // Referanstaki (7. pano) far ışığı kırmızının üstünde doygun sarı-turuncu parlar.
+      .setTint(0xffa848)
+      .setAlpha(LIGHT_ALPHA);
 
     this.add([this.jet, back, this.explorer, front, this.light]);
     this.setScale(SCALE).setDepth(DEPTH.player);
@@ -193,7 +196,7 @@ export class Submarine extends Phaser.GameObjects.Container {
     this.jet.setAlpha(0.25 + 0.65 * this.thrust);
 
     // Far: çok hafif titreme.
-    this.light.setAlpha(0.38 + Math.sin(this.time * 5.1) * 0.025 + Math.sin(this.time * 13.7) * 0.015);
+    this.light.setAlpha(LIGHT_ALPHA + Math.sin(this.time * 5.1) * 0.04 + Math.sin(this.time * 13.7) * 0.025);
 
     // Kabarcıklar parçacık sisteminde dünya koordinatında doğar.
     const jetWorld = this.localToWorld(JET.x - 4, JET.y);

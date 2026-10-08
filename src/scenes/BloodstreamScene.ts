@@ -53,7 +53,8 @@ export class BloodstreamScene extends Phaser.Scene {
       .image(0, 0, 'vignette')
       .setOrigin(0, 0)
       .setScrollFactor(0)
-      .setDepth(DEPTH.vignette);
+      .setDepth(DEPTH.vignette)
+      .setAlpha(0.45);
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, WORLD_WIDTH, GAME_HEIGHT);
@@ -83,14 +84,16 @@ export class BloodstreamScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
-    const dt = Math.min(deltaMs, 50) / 1000;
+    // Yavaş cihazlarda oyun hızı düşmesin diye uzun kareler küçük fizik adımlarına bölünür.
+    const dt = Math.min(deltaMs, 250) / 1000;
     this.heart.update(dt);
 
     const input = this.controls.axis;
     if (this.controls.scanPressed) this.scanPulse();
     if (this.controls.interactPressed) this.sub.interact();
 
-    this.sub.step(dt, input);
+    const steps = Math.ceil(dt / (1 / 30));
+    for (let i = 0; i < steps; i++) this.sub.step(dt / steps, input);
     this.flow.update(dt, this.heart.surge);
     this.vessel.pulse(this.heart.pulse);
     this.glow.setAlpha(0.15 + this.heart.pulse * 0.035);

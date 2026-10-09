@@ -102,7 +102,8 @@ export class BloodstreamScene extends Phaser.Scene {
     const dt = deltaMs / 1000;
     this.heart.update(dt);
 
-    const input = this.controls.axis;
+    const cam = this.cameras.main;
+    const input = this.controls.axis({ x: this.sub.x - cam.scrollX, y: this.sub.y - cam.scrollY });
     if (this.controls.consumeScan()) this.scanPulse();
     if (this.controls.consumeInteract()) this.sub.interact();
 

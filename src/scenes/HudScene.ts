@@ -116,6 +116,16 @@ export class HudScene extends Phaser.Scene {
       items.push(txt);
       cx += txt.width + 10;
     };
+    // Telefon ve tablette klavye yok: dokunmatik kontrolleri anlat.
+    const os = this.sys.game.device.os;
+    if (this.sys.game.device.input.touch && !os.desktop) {
+      key('Sürükle');
+      label('Hareket');
+      key('Dokun');
+      label('Tara');
+      const panel = createPanel(this, 0, 0, cx + 2, h).setOrigin(0, 0);
+      return this.add.container(24, GAME_HEIGHT - 24 - h, [panel, ...items]);
+    }
     key('WASD / Oklar');
     label('Hareket');
     items.push(this.add.image(cx + 50, cy, 'key_space').setDisplaySize(100, 44));

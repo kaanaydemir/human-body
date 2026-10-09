@@ -8,6 +8,8 @@ karakterler ve çizimler bu proje için özgün olarak tasarlanmıştır.
 Görsel yönün tek kaynağı `reference.png` dosyasıdır. Ayrıntılar `ART_DIRECTION.md` ve
 `ASSET_MANIFEST.md` dosyalarında.
 
+![Oyun ve referans karşılaştırması](docs/screenshots/stage2_vs_reference.jpg)
+
 ## Çalıştırma
 
 ```bash
@@ -74,6 +76,12 @@ node tools/screenshot.mjs --out tools/out/shot.png --params "debug=1" --keys "Ar
 
 `screenshot.mjs`, açılıştaki kamera kararması bitene kadar bekler. Başsız tarayıcı yazılımsal WebGL ile 5–8 FPS
 çalışır; bu yalnızca test ortamına özgüdür.
+
+## Ekran görüntüleri
+
+| Başlangıç | Keşif | Zemine iniş |
+|---|---|---|
+| ![](docs/screenshots/stage2_start.jpg) | ![](docs/screenshots/stage2_hero.jpg) | ![](docs/screenshots/stage2_land.jpg) |
 
 ## Yol haritası
 

@@ -76,8 +76,8 @@ export class BloodFlow {
     for (let i = 0; i < 4; i++) {
       const f = this.rng.realInRange(PARALLAX.foreground, PARALLAX.foreground + 0.25);
       this.add('disc_cell_blur', f, DEPTH.foreground + 1, {
-        y: this.rng.between(900, 1010),
-        scale: this.rng.realInRange(0.95, 1.4),
+        y: this.rng.between(910, 970),
+        scale: this.rng.realInRange(0.85, 1.15),
         alpha: 0.92,
         ownSpeed: this.rng.realInRange(10, 40),
         swayAmp: this.rng.realInRange(10, 24),

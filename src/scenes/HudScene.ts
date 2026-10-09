@@ -14,7 +14,11 @@ const HINT_LINGER = 6000;
  */
 export class HudScene extends Phaser.Scene {
   private pauseLayer?: Phaser.GameObjects.Container;
+  /** Şu an gösterilen (ya da duraklatmada gizlenen) altyazı. Solarak kaybolurken undefined olur. */
   private caption?: Phaser.GameObjects.Container;
+  /** Ekrandaki altyazı düğümü; solma animasyonu bitene kadar yaşar. */
+  private captionNode?: Phaser.GameObjects.Container;
+  private captionTimer?: Phaser.Time.TimerEvent;
   private objective!: Phaser.GameObjects.Container;
   private progress!: Phaser.GameObjects.Container;
   private hints!: Phaser.GameObjects.Container;
@@ -27,8 +31,13 @@ export class HudScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Saat eklentisi sahne yeniden başlarken "duraklatılmış" bayrağını sıfırlamaz
+    // ("Baştan Başla" duraklatma menüsünden çağrılır).
+    this.time.paused = false;
     this.pauseLayer = undefined;
     this.caption = undefined;
+    this.captionNode = undefined;
+    this.captionTimer = undefined;
     this.hintTimer = undefined;
 
     this.objective = this.createObjective().setAlpha(0);
@@ -36,7 +45,14 @@ export class HudScene extends Phaser.Scene {
     this.hints = this.createControlsHint();
     this.showCaption('3', 'Kan damarının içindesin! Alyuvarlar oksijeni tüm\nvücuda taşıyor. İleri doğru ilerle ve keşfet.');
 
-    this.input.keyboard?.on('keydown-ESC', () => this.togglePause());
+    // Olay adıyla dinlenen tuşlar işletim sisteminin tekrarını süzmez; Phaser da aynı karede gelen
+    // başka bir tuş olayında kuyruktaki ESC'yi yeniden gönderebilir. İkisini de ele, tek dokunuş = tek geçiş.
+    let lastEsc: KeyboardEvent | undefined;
+    this.input.keyboard?.on('keydown-ESC', (e: KeyboardEvent) => {
+      if (e.repeat || e === lastEsc) return;
+      lastEsc = e;
+      this.togglePause();
+    });
     this.registry.events.on('changedata-moved', this.onFirstMove, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.registry.events.off('changedata-moved', this.onFirstMove, this);
@@ -118,23 +134,33 @@ export class HudScene extends Phaser.Scene {
 
   /** Referanstaki numaralı altyazılar gibi: sol üstte rozet + krem panel, yalnızca saydamlıkla belirir. */
   showCaption(number: string, text: string): void {
-    this.caption?.destroy();
+    this.captionTimer?.remove();
+    if (this.captionNode) {
+      this.tweens.killTweensOf(this.captionNode);
+      this.captionNode.destroy();
+    }
     const txt = this.add.text(118, 0, text, captionStyle(34)).setOrigin(0, 0.5).setLineSpacing(8);
     const w = Math.min(920, txt.width + 160);
     const h = Math.max(120, txt.height + 44);
     txt.setY(h / 2);
     const panel = createPanel(this, 0, 0, w, h).setOrigin(0, 0);
     const badge = createBadge(this, 62, h / 2, number, 76);
-    this.caption = this.add.container(24, 20, [panel, badge, txt]).setAlpha(0);
+    const c = this.add.container(24, 20, [panel, badge, txt]).setAlpha(0);
+    this.caption = c;
+    this.captionNode = c;
     this.fade(this.objective, 0, 200);
-    this.fade(this.caption, 1, 500);
-    this.time.delayedCall(9000, () => this.hideCaption(0));
+    this.fade(c, 1, 500);
+    // Zamanlayıcı yalnızca kendi altyazısını kapatır; sonradan gelen bir altyazıyı erken gizlemez.
+    this.captionTimer = this.time.delayedCall(9000, () => {
+      if (this.caption === c) this.hideCaption(0);
+    });
   }
 
   private hideCaption(delay: number): void {
     const c = this.caption;
     if (!c) return;
     this.caption = undefined;
+    this.captionTimer?.remove();
     this.tweens.add({
       targets: c,
       alpha: 0,
@@ -143,6 +169,7 @@ export class HudScene extends Phaser.Scene {
       ease: 'Sine.easeIn',
       onComplete: () => {
         c.destroy();
+        if (this.captionNode === c) this.captionNode = undefined;
         if (!this.pauseLayer) this.fade(this.objective, 1, 500);
       },
     });
@@ -154,27 +181,31 @@ export class HudScene extends Phaser.Scene {
   }
 
   private togglePause(): void {
-    const world = this.scene.get('Bloodstream');
     if (this.pauseLayer) {
       this.pauseLayer.destroy();
       this.pauseLayer = undefined;
       this.scene.resume('Bloodstream');
-      world.events.emit('resumed');
-      // Panelleri geri getir; kontrol ipuçları yeniden kısa bir süre görünür kalır.
-      this.objective.setVisible(true).setAlpha(1);
+      this.time.paused = false;
+      // Panelleri geri getir. Henüz okunmamış altyazı kaldığı yerden devam eder; yoksa görev paneli gelir.
+      this.tweens.killTweensOf([this.hints, this.objective]);
       this.progress.setVisible(true);
       this.hints.setVisible(true).setAlpha(1);
+      this.objective.setVisible(true).setAlpha(this.captionNode ? 0 : 1);
+      this.captionNode?.setVisible(true);
+      this.tweens.resumeAll();
       this.hintTimer?.remove();
       this.hintTimer = this.time.delayedCall(HINT_LINGER, () => this.fade(this.hints, 0, 600));
       return;
     }
     this.scene.pause('Bloodstream');
     // Karartma altında krem paneller morumsu görünür; duraklatmada HUD'u tamamen gizle.
-    this.caption?.destroy();
-    this.caption = undefined;
+    // Altyazı yok edilmez: gizlenir, zamanlayıcısı ve solması duraklatılır, devam edince sürer.
+    this.captionNode?.setVisible(false);
     this.objective.setVisible(false);
     this.progress.setVisible(false);
     this.hints.setVisible(false);
+    this.tweens.pauseAll();
+    this.time.paused = true;
 
     const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.maroon, 0.55).setOrigin(0, 0);
     dim.setInteractive(); // Arkadaki tıklamaları yut.
@@ -187,7 +218,7 @@ export class HudScene extends Phaser.Scene {
       .text(GAME_WIDTH / 2, py + 80, 'Oyun Duraklatıldı', textStyle(56, '800'))
       .setOrigin(0.5);
     const tip = this.add
-      .text(GAME_WIDTH / 2, py + 138, 'WASD / Oklar: hareket · Boşluk: tara · E: etkileşim', captionStyle(24, '400', '#5a4c3d'))
+      .text(GAME_WIDTH / 2, py + 138, 'WASD / Oklar: hareket · Boşluk: tara · E: etkileşim', captionStyle(24, '400', COLORS.textSoft))
       .setOrigin(0.5);
     const resume = this.button(GAME_WIDTH / 2, py + 250, 'Devam Et', () => this.togglePause());
     const restart = this.button(GAME_WIDTH / 2, py + 365, 'Baştan Başla', () => {

@@ -20,15 +20,15 @@ export const PARALLAX = {
 } as const;
 
 /** Ana düzlemdeki tavan ve zemin bantlarının dünya içindeki konumu (ASSET_MANIFEST.md A). */
-export const CEILING_BAND = { y: 0, height: 340 } as const;
+export const CEILING_BAND = { y: 0 } as const;
 export const FLOOR_BAND = { y: 720, height: 360 } as const;
 
 /**
- * Denizaltının merkezinin dolaşabileceği dikey aralık. Tavan konturu en fazla ~266'ya iner,
- * kubbe tepesi merkezin ~107 px üstünde. En altta gövde zemindeki ilk tümsek sırasına
- * 20–30 px gömülür, böylece "iniş" havada asılı kalmaz.
+ * Denizaltının merkezinin dolaşabileceği dikey aralık. Tavan konturu en fazla ~266'ya iner ve
+ * denizaltının en üst noktası (anten) merkezin ~122 px üstünde; üst sınırda en fazla 15 px aşılır.
+ * En altta gövde zemindeki ilk tümsek sırasına 20–30 px gömülür, böylece "iniş" havada asılı kalmaz.
  */
-export const LUMEN = { top: 375, bottom: 735 } as const;
+export const LUMEN = { top: 395, bottom: 728 } as const;
 
 /** Görüntü katmanlarının çizim sırası. */
 export const DEPTH = {

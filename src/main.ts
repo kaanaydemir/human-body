@@ -15,6 +15,22 @@ import { BootScene } from './scenes/BootScene';
 import { BloodstreamScene } from './scenes/BloodstreamScene';
 import { HudScene } from './scenes/HudScene';
 
+/**
+ * Yazı tipleri oyun başlamadan yüklenir: yükleme ekranı dahil hiçbir metin yedek yazı tipiyle
+ * çizilmesin. Türkçe harfler (ş, ğ, ı, İ) latin-ext alt kümesinde olduğundan örnek metinle istenir.
+ */
+async function loadFonts(): Promise<void> {
+  const sample = 'ŞşĞğİıÇçÖöÜü';
+  const faces = ['500 32px "Baloo 2"', '700 32px "Baloo 2"', '800 32px "Baloo 2"', '400 32px "Arimo"', '700 32px "Arimo"'];
+  try {
+    await Promise.all(faces.map((f) => document.fonts.load(f, sample)));
+  } catch {
+    // Yazı tipi yüklenemezse yedek yazı tipiyle devam edilir.
+  }
+}
+
+await loadFonts();
+
 const game = new Phaser.Game({
   type: Phaser.WEBGL,
   parent: 'game',
@@ -25,9 +41,10 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  // Phaser açılışta 120 kare boyunca zaman adımını 16,6 ms ile sınırlar; yavaş cihazlarda bu, ilk
-  // saniyelerin ağır çekim oynaması demek. 200 ms'yi aşan sıçramalar zaten ayrıca kırpılıyor.
-  fps: { target: 60, panicMax: 10 },
+  // Phaser açılışta panicMax kare boyunca zaman adımını 16,6 ms ile sınırlar; varsayılan 120 kare,
+  // yavaş cihazlarda ilk saniyelerin ağır çekim oynaması demek. 1000/min = 250 ms'yi aşan kareler
+  // (sekme değişimi vb.) Phaser tarafından önceki bir kare süresiyle değiştirilir.
+  fps: { target: 60, min: 4, panicMax: 10 },
   render: {
     antialias: true,
     roundPixels: false,

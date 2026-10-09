@@ -59,22 +59,10 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
-  async create(): Promise<void> {
+  create(): void {
     if (this.failed.length > 0) {
       this.showError(this.failed);
       return;
-    }
-    // Türkçe karakterler (ş, ğ, ı, İ) latin-ext alt kümesinde; metin oluşturmadan önce yüklenmeli.
-    try {
-      await Promise.all([
-        document.fonts.load(`500 32px "Baloo 2"`, 'ŞşĞğİıÇçÖöÜü'),
-        document.fonts.load(`700 32px "Baloo 2"`, 'ŞşĞğİıÇçÖöÜü'),
-        document.fonts.load(`800 32px "Baloo 2"`, 'ŞşĞğİıÇçÖöÜü'),
-        document.fonts.load(`400 32px "Arimo"`, 'ŞşĞğİıÇçÖöÜü'),
-        document.fonts.load(`700 32px "Arimo"`, 'ŞşĞğİıÇçÖöÜü'),
-      ]);
-    } catch {
-      // Yazı tipi yüklenemezse yedek yazı tipiyle devam edilir.
     }
     this.scene.start('Bloodstream');
   }

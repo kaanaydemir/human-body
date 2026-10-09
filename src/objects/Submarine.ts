@@ -22,6 +22,8 @@ const LIGHT_ALPHA = 0.95;
 /** Zemindeki temas gölgesinin y'si ve görünmeye başladığı yükseklik. */
 const SHADOW_Y = 830;
 const SHADOW_RANGE = 220;
+/** ART_DIRECTION §5: eğilme en fazla ±6°. */
+const MAX_TILT = Phaser.Math.DegToRad(6);
 const MAX_SPEED_X = 470;
 const MAX_SPEED_Y = 300;
 const ACCEL_X = 820;
@@ -145,9 +147,12 @@ export class Submarine extends Phaser.GameObjects.Container {
       this.pos.x = maxX;
       v.x = Math.min(0, v.x);
     }
-    if (this.pos.y < LUMEN.top) {
-      v.y += (LUMEN.top - this.pos.y) * 14 * dt;
-      this.pos.y = Math.max(this.pos.y, LUMEN.top - 24);
+    if (this.pos.y < LUMEN.top) v.y += (LUMEN.top - this.pos.y) * 14 * dt;
+    const stopY = LUMEN.top - 15;
+    if (this.pos.y < stopY) {
+      // Hızı da sıfırla, yoksa yukarı basılı tutulunca denizaltı tavana yapışık kalır.
+      this.pos.y = stopY;
+      if (v.y < 0) v.y = 0;
     }
     const wasLanded = this.landed;
     if (this.pos.y >= LUMEN.bottom) {
@@ -194,6 +199,7 @@ export class Submarine extends Phaser.GameObjects.Container {
     if (this.subState === 'backward') targetRot += 0.05 * Math.abs(nx);
     if (this.subState === 'slowing') targetRot += 0.04 * nx;
     targetRot += Math.sin(this.time * 1.3) * (this.landed ? 0.004 : 0.015);
+    targetRot = Phaser.Math.Clamp(targetRot, -MAX_TILT, MAX_TILT);
     this.rotation = Phaser.Math.Linear(this.rotation, targetRot, 1 - Math.exp(-5 * dt));
 
     // İtki: ileri basılıyken güçlü, boşta hafif, geri giderken kapalı.
@@ -249,8 +255,9 @@ export class Submarine extends Phaser.GameObjects.Container {
     this.squash(1.05, 0.94);
     // Zemine değerken birkaç kabarcık ve zerre savrulur.
     const p = this.localToWorld(0, 120);
-    this.noseBubbles.explode(8, p.x + 60, p.y);
-    this.bubbles.explode(8, p.x - 60, p.y);
+    // explode() yayıcıyı kalıcı olarak patlama kipine alır; emitParticleAt kipe dokunmaz.
+    this.noseBubbles.emitParticleAt(p.x + 60, p.y, 8);
+    this.bubbles.emitParticleAt(p.x - 60, p.y, 8);
   }
 
   private squash(sx: number, sy: number): void {

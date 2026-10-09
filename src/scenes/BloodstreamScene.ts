@@ -31,8 +31,12 @@ export class BloodstreamScene extends Phaser.Scene {
 
   create(): void {
     const params = new URLSearchParams(window.location.search);
-    const startX = Phaser.Math.Clamp(Number(params.get('x') ?? 420), 280, WORLD_WIDTH - 280);
-    const startY = Phaser.Math.Clamp(Number(params.get('y') ?? 520), 300, 760);
+    const num = (key: string, fallback: number): number => {
+      const v = Number(params.get(key));
+      return params.has(key) && Number.isFinite(v) ? v : fallback;
+    };
+    const startX = Phaser.Math.Clamp(num('x', 420), 280, WORLD_WIDTH - 280);
+    const startY = Phaser.Math.Clamp(num('y', 520), 300, 760);
 
     this.moved = false;
     this.lookahead = BASE_LOOKAHEAD;
@@ -69,7 +73,11 @@ export class BloodstreamScene extends Phaser.Scene {
     this.registry.set('moved', false);
     this.scene.launch('Hud');
 
-    this.events.on('resumed', () => this.controls.reset());
+    // Duraklatmadan dönünce takılı kalmış tuşları temizle. Sahne olay dinleyicileri kapanışta
+    // kendiliğinden silinmez; yeniden başlatmada birikmesin diye elle kaldırılır.
+    const onResume = (): void => this.controls.reset();
+    this.events.on(Phaser.Scenes.Events.RESUME, onResume);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.RESUME, onResume));
 
     if (params.has('debug')) {
       this.debugText = this.add
@@ -90,7 +98,8 @@ export class BloodstreamScene extends Phaser.Scene {
 
   update(_time: number, deltaMs: number): void {
     // Yavaş cihazlarda oyun hızı düşmesin diye uzun kareler küçük fizik adımlarına bölünür.
-    const dt = Math.min(deltaMs, 250) / 1000;
+    // (Phaser, fps.min'e göre 250 ms'yi aşan kareleri zaten önceki bir değerle değiştirir.)
+    const dt = deltaMs / 1000;
     this.heart.update(dt);
 
     const input = this.controls.axis;

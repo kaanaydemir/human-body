@@ -3,7 +3,7 @@
  * aynı ritme bağlı olsun diye tek bir zamanlayıcıdan okunur.
  */
 export class Heartbeat {
-  /** Saniyedeki atış süresi (60 atım/dk). */
+  /** Bir atışın süresi, saniye (varsayılan 64 atım/dk). */
   readonly period: number;
   private t = 0;
 

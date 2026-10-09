@@ -17,7 +17,11 @@ const HEADLIGHT = { x: 498 - FRAME_CENTER.x, y: 178 - FRAME_CENTER.y };
 const JET = { x: 24 - FRAME_CENTER.x, y: 168 - FRAME_CENTER.y };
 
 const SCALE = 0.85;
-const LIGHT_ALPHA = 0.8;
+/** sub_light.svg kendi renk geçişiyle (krem → sarı → turuncu → kırmızı) NORMAL karışım için çizildi. */
+const LIGHT_ALPHA = 0.95;
+/** Zemindeki temas gölgesinin y'si ve görünmeye başladığı yükseklik. */
+const SHADOW_Y = 830;
+const SHADOW_RANGE = 220;
 const MAX_SPEED_X = 470;
 const MAX_SPEED_Y = 300;
 const ACCEL_X = 820;
@@ -38,6 +42,7 @@ export class Submarine extends Phaser.GameObjects.Container {
   private readonly explorer: Phaser.GameObjects.Image;
   private readonly jet: Phaser.GameObjects.Image;
   private readonly light: Phaser.GameObjects.Image;
+  private readonly shadow: Phaser.GameObjects.Image;
   private readonly bubbles: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly noseBubbles: Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -53,6 +58,11 @@ export class Submarine extends Phaser.GameObjects.Container {
     super(scene, x, y);
     this.pos = new Phaser.Math.Vector2(x, y);
 
+    this.shadow = scene.add
+      .image(x, SHADOW_Y, Submarine.shadowTexture(scene))
+      .setDepth(DEPTH.floor + 1)
+      .setAlpha(0);
+
     this.jet = scene.add.image(JET.x, JET.y, 'jet').setOrigin(1, 0.5).setAlpha(0.6);
     const back = scene.add.image(0, 0, 'sub_back');
     this.explorer = scene.add.image(0, 0, 'explorer');
@@ -60,9 +70,6 @@ export class Submarine extends Phaser.GameObjects.Container {
     this.light = scene.add
       .image(HEADLIGHT.x - 6, HEADLIGHT.y, 'sub_light')
       .setOrigin(0, 0.5)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      // Referanstaki (7. pano) far ışığı kırmızının üstünde doygun sarı-turuncu parlar.
-      .setTint(0xffa848)
       .setAlpha(LIGHT_ALPHA);
 
     this.add([this.jet, back, this.explorer, front, this.light]);
@@ -70,20 +77,22 @@ export class Submarine extends Phaser.GameObjects.Container {
     scene.add.existing(this);
 
     // Arka jetten çıkan kabarcıklar ve geri giderken burundan çıkan kabarcıklar.
+    // Yayıcılar (0,0)'da durur; yalnızca doğum noktası (particleX/Y) taşınır. Yayıcının kendisi
+    // taşınırsa canlı kabarcıklar da denizaltıyla birlikte sürüklenir ve arkada iz kalmaz.
     this.bubbles = scene.add
-      .particles(0, 0, 'bubble', {
-        lifespan: { min: 700, max: 1300 },
-        speedX: { min: -190, max: -70 },
-        speedY: { min: -40, max: 20 },
-        scale: { start: 0.55, end: 0.15 },
-        alpha: { start: 0.85, end: 0 },
-        gravityY: -40,
+      .particles(0, 0, 'jet_bubble', {
+        lifespan: { min: 1200, max: 2000 },
+        speedX: { min: -150, max: -50 },
+        speedY: { min: -60, max: 60 },
+        scale: { start: 0.875, end: 0.5 },
+        alpha: { start: 1, end: 0, ease: 'Quad.easeIn' },
+        gravityY: -35,
         frequency: 60,
         emitting: false,
       })
       .setDepth(DEPTH.playerFx);
     this.noseBubbles = scene.add
-      .particles(0, 0, 'bubble', {
+      .particles(0, 0, 'jet_bubble', {
         lifespan: { min: 500, max: 900 },
         speedX: { min: 60, max: 160 },
         speedY: { min: -30, max: 30 },
@@ -193,18 +202,26 @@ export class Submarine extends Phaser.GameObjects.Container {
     this.thrust = Phaser.Math.Linear(this.thrust, targetThrust, 1 - Math.exp(-6 * dt));
     const flicker = 0.92 + Math.sin(this.time * 31) * 0.05 + Math.sin(this.time * 17.3) * 0.03;
     this.jet.setScale((0.35 + 0.8 * this.thrust) * flicker, 0.75 + 0.35 * this.thrust);
-    this.jet.setAlpha(0.25 + 0.65 * this.thrust);
+    this.jet.setAlpha(0.5 + 0.45 * this.thrust);
 
     // Far: çok hafif titreme.
     this.light.setAlpha(LIGHT_ALPHA + Math.sin(this.time * 5.1) * 0.04 + Math.sin(this.time * 13.7) * 0.025);
 
     // Kabarcıklar parçacık sisteminde dünya koordinatında doğar.
     const jetWorld = this.localToWorld(JET.x - 4, JET.y);
-    this.bubbles.setPosition(jetWorld.x, jetWorld.y);
+    this.bubbles.particleX = jetWorld.x;
+    this.bubbles.particleY = jetWorld.y;
     this.bubbles.frequency = Phaser.Math.Linear(170, 28, this.thrust);
     this.bubbles.emitting = this.thrust > 0.12;
     const noseWorld = this.localToWorld(HEADLIGHT.x + 4, HEADLIGHT.y + 10);
-    this.noseBubbles.setPosition(noseWorld.x, noseWorld.y);
+    this.noseBubbles.particleX = noseWorld.x;
+    this.noseBubbles.particleY = noseWorld.y;
+
+    // Zemine yaklaştıkça altında yumuşak bir temas gölgesi belirir.
+    const near = Phaser.Math.Clamp(1 - (LUMEN.bottom - this.pos.y) / SHADOW_RANGE, 0, 1);
+    this.shadow.setPosition(this.pos.x + 10, SHADOW_Y);
+    this.shadow.setAlpha(0.42 * near);
+    this.shadow.setScale(0.75 + 0.35 * near, 0.8 + 0.2 * near);
     this.noseBubbles.emitting = this.subState === 'backward';
 
     this.animateExplorer(dt);
@@ -247,6 +264,31 @@ export class Submarine extends Phaser.GameObjects.Container {
       ease: 'Sine.easeOut',
       onComplete: () => this.setScale(SCALE),
     });
+  }
+
+  /** Yumuşak kenarlı elips gölge dokusunu bir kez üretir. */
+  private static shadowTexture(scene: Phaser.Scene): string {
+    const key = 'sub_contact_shadow';
+    if (scene.textures.exists(key)) return key;
+    const w = 360;
+    const h = 64;
+    const tex = scene.textures.createCanvas(key, w, h);
+    if (!tex) return key;
+    const ctx = tex.getContext();
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(1, h / w);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+    g.addColorStop(0, 'rgba(74, 18, 32, 1)');
+    g.addColorStop(0.55, 'rgba(74, 18, 32, 0.55)');
+    g.addColorStop(1, 'rgba(74, 18, 32, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, w / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    tex.refresh();
+    return key;
   }
 
   /** Kap içindeki yerel bir noktanın dünya konumu (döndürme ve ölçek dahil). */

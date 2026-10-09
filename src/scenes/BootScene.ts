@@ -70,6 +70,8 @@ export class BootScene extends Phaser.Scene {
         document.fonts.load(`500 32px "Baloo 2"`, 'ŞşĞğİıÇçÖöÜü'),
         document.fonts.load(`700 32px "Baloo 2"`, 'ŞşĞğİıÇçÖöÜü'),
         document.fonts.load(`800 32px "Baloo 2"`, 'ŞşĞğİıÇçÖöÜü'),
+        document.fonts.load(`400 32px "Arimo"`, 'ŞşĞğİıÇçÖöÜü'),
+        document.fonts.load(`700 32px "Arimo"`, 'ŞşĞğİıÇçÖöÜü'),
       ]);
     } catch {
       // Yazı tipi yüklenemezse yedek yazı tipiyle devam edilir.

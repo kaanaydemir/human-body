@@ -35,7 +35,9 @@ Geliştirici parametreleri:
 - Phaser 3
 - Vite
 - 1920×1080 tasarım çözünürlüğü (ekrana göre ölçeklenir)
-- Çizimler `public/assets/svg/` altında elle yazılmış SVG dosyalarıdır ve yüklenirken rasterize edilir.
+- Çizimler `public/assets/svg/` altında SVG dosyalarıdır ve yüklenirken rasterize edilir. Her çizim grubu
+  `tools/art/<grup>/` altındaki bir Python üretici betiğiyle (yalnızca standart kütüphane) üretilir.
+- Yazı tipleri pakete gömülüdür (`@fontsource`). Altyazılarda Arimo, başlık ve düğmelerde Baloo 2 kullanılır.
 
 ## Proje yapısı
 
@@ -54,8 +56,10 @@ src/
   input/Controls.ts       Klavye girişi
   ui/Panel.ts             Krem panel, rozet ve yazı stilleri
 tools/
+  art/<grup>/             Çizim üreticileri (far, rear, ceiling, floor, foreground-fx, submarine, ui)
   render-svg.mjs          Bir SVG'yi PNG olarak önizler
   screenshot.mjs          Oyunu başsız tarayıcıda açıp ekran görüntüsü alır
+  out/                    Geçici çıktılar (git'e girmez)
 ```
 
 ## Geliştirme araçları
@@ -63,9 +67,13 @@ tools/
 ```bash
 npm run typecheck
 npm run build
+python3 -I tools/art/floor/gen_floor.py          # bir çizim grubunu yeniden üret
 node tools/render-svg.mjs public/assets/svg/player/sub_front.svg tools/out/sub.png 1
 node tools/screenshot.mjs --out tools/out/shot.png --params "debug=1" --keys "ArrowRight:1500"
 ```
+
+`screenshot.mjs`, açılıştaki kamera kararması bitene kadar bekler. Başsız tarayıcı yazılımsal WebGL ile 5–8 FPS
+çalışır; bu yalnızca test ortamına özgüdür.
 
 ## Yol haritası
 

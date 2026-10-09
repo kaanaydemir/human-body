@@ -67,8 +67,9 @@ Studied panel by panel (panel numbers refer to `reference.png`):
 | Eye white | `#fbf6f2`, pupil `#1d1416` |
 | Oxygen bubble glass | `#bcd8f2` at ~55% alpha, rim `#7aa6d6`, highlight `#ffffff` |
 | Sub hull | `#efddd0` (lit `#f7ebe0`, shade `#bda79c`) |
-| Sub red parts | `#cf2c43` (shade `#9e1f33`) |
-| Dome glass | `#d2d8e4` tint at low alpha, deep interior `#223973` |
+| Sub red parts | `#cf3a3a` (lit `#e0443c`, shade `#a32a2e`, white specular) |
+| Dome glass | `#d2d8e4` tint at low alpha (≈.16 at the top), interior `#223973` → `#1c2450` → `#121838`, white streaks at .85–.92 |
+| Headlight beam | `#ffe79e` at the lens → `#fbb85c` → `#fc805a` → `#eb594f` fading to transparent; drawn with NORMAL blend, never tinted |
 | Explorer suit | `#f2a93b` (shade `#c97a22`) |
 | Explorer hair | `#7a3e1d` (shade `#55260f`) |
 | Explorer skin | `#f6c9a5` (shade `#dc9f7d`) |
@@ -77,15 +78,19 @@ Studied panel by panel (panel numbers refer to `reference.png`):
 | White blood cell | `#efedf5` (shade `#c9c6da`) |
 | Platelet | `#f2b63c` (shade `#c98a22`), helmet `#f7d23a` |
 | Plaque / blockage | `#ec9536`, `#fabb59`, shade `#cb7928`, deep `#b24023` |
+| Foreground lumps (bottom) | base `#c8262d`, shadow `#891a24`, highlight `#ea6a55`, streak `#f3b2a2`, ink `#5a1a1c` |
+| Foreground folds (top) | base `#9e2029`, shadow `#6c1620`, highlight `#d0544a`, streak `#e8a092`, ink `#4c1219` |
+| Far loose discs | body `#ac3e3c`, shade `#923035`, outline `#842f35` (haze is baked in, never tinted in code) |
 | Captain cap | white `#f7f4ee`, visor `#1f1a1c`, emblem `#e2b33c` |
 
 ### UI
 | Role | Hex |
 |---|---|
-| Panel fill | `#f9e9d0` (lower inner edge `#ecddc7`) |
-| Panel outline / text | `#463d32` / `#2b241d` |
-| Number badge | `#1f2433` circle, white numeral |
+| Panel fill | `#f9e9d0`, flat right up to the line (the reference captions have no inner bevel or shading) |
+| Panel outline / text | `#2e241c`, even 3.5 px, corner radius 24 / text `#1b1714` |
+| Number badge | flat `#0d1424` disc (measured from the reference badges), white bold numeral |
 | Accent button | `#cf2c43` with cream text |
+| Caption type | plain grotesk like the reference captions: **Arimo** (metric-compatible with Arial), regular, ~34 px. The rounded **Baloo 2** is only for short labels, titles and buttons |
 
 ---
 
@@ -121,7 +126,10 @@ A side-scroller cannot literally keep that perspective, so we fake it with paral
    overhanging folds at the top, plus a few large drifting discs. Slightly darker and more saturated,
    so they frame the shot like the cropped cells at the edges of panel 4.
 
-Plus screen-space overlays: warm vignette (darker maroon edges) and a soft warm light glow.
+Plus screen-space overlays: a vignette that darkens **only the four corners** (top/bottom edge midpoints stay
+almost untouched, so the near ceiling and floor are not dimmed as a block) and a soft warm key light (`#ff8a28`,
+ADD at ~.12) placed off-axis at the upper left, never over the vanishing holes: the deepest point of the tunnel
+must stay the darkest.
 
 **The ceiling and floor must visually connect** through the rear-wall ribs: every rib starts in the
 floor and ends in the ceiling.
@@ -162,8 +170,10 @@ storytelling, traditional cartoon rendering).
   exact size from `ASSET_MANIFEST.md`.
 - Self-contained: no external fonts, images or CSS. Text in SVG must be converted to paths or avoided
   (UI labels are rendered by the game, not baked in), except single big glyph-like letters drawn as paths.
-- Shared environment texture filter (use **exactly** this definition when an asset needs grain, so all
-  layers share the same grain and tiles stitch seamlessly):
+- Shared environment texture filters (use **exactly** these definitions when an asset needs grain, so all
+  layers share the same grain and tiles stitch seamlessly). `mottle` below is the warm v2 matrix used by the far and
+  floor layers; the original pink matrix (`0.98 / 0.55 / 0.55`, alpha `0.16`) desaturates and lightens the reds by
+  ~8%, so wherever it is still used (ceiling, rear) it sits under the painted colours or at ≤ 0.5 group opacity:
 
   ```xml
   <filter id="grain" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse">
@@ -173,7 +183,7 @@ storytelling, traditional cartoon rendering).
   </filter>
   <filter id="mottle" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse">
     <feTurbulence type="fractalNoise" baseFrequency="0.008 0.02" numOctaves="3" seed="3" stitchTiles="stitch" result="n"/>
-    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.98  0 0 0 0 0.55  0 0 0 0 0.55  0 0 0 0.16 0"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.94  0 0 0 0 0.36  0 0 0 0 0.30  0 0 0 0.08 0"/>
     <feComposite in2="SourceGraphic" operator="in"/>
   </filter>
   ```
@@ -181,4 +191,20 @@ storytelling, traditional cartoon rendering).
   For tileable segments the filter region must be the whole canvas (`x=0 y=0 width=W height=H`
   in user space) so `stitchTiles` makes the noise periodic with the segment width.
 - Render-check every asset with `node tools/render-svg.mjs <svg> <png> [scale] [bg]` and look at it
-  next to the matching crop of `reference.png` before calling it done.
+  next to the matching crop of `reference.png` before calling it done. Then check it **in the game**
+  (`node tools/screenshot.mjs …`): the composite is what counts.
+- Inks and cel tones are **opaque**. Translucent line work and airbrushed blur volumes read as "vector clip art",
+  not as a painted cartoon; blur is reserved for out-of-focus foreground discs and light.
+- Every asset is produced by a generator script under `tools/art/<group>/` (see each README). Change the generator,
+  re-run it, and commit both; never hand-edit the emitted SVG.
+
+## 8. Lessons from the Stage 2 visual QA
+
+- **Measure only after the camera fade has finished.** The first brightness measurements were taken mid fade-in
+  and overstated the gap to the reference by ~20 percentage points.
+- Forms the reviewers rejected and why: floor mounds that read as stacked cushions (fixed with long, low,
+  overlapping dunes), a ceiling that read as a theatre pelmet (fixed with long overhanging folds and vault arcs),
+  rear ribs that read as vertical posts (fixed with full ring arches whose legs lean and bow), far rings that read
+  as tree rings / targets (fixed with fewer, wider folds and a floor running into the hole).
+- Tile seams must carry structure, not a bald margin: every tiling layer now draws an identical *seam motif*
+  straddling the border, and the game offsets each layer's tiling phase so seams never line up across layers.

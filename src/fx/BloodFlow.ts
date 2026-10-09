@@ -30,15 +30,14 @@ export class BloodFlow {
   private time = 0;
 
   constructor(private readonly scene: Phaser.Scene) {
-    // Uzak serbest diskler: arka trafik katmanında, puslu.
+    // Uzak serbest diskler: arka trafik katmanında; puslu renkler çizimin kendisinde (disc_cell_far).
     for (let i = 0; i < 9; i++) {
       const f = this.rng.realInRange(PARALLAX.traffic - 0.08, PARALLAX.traffic + 0.05);
       const scale = this.rng.realInRange(0.32, 0.5);
-      this.add('disc_cell', f, DEPTH.traffic, {
+      this.add('disc_cell_far', f, DEPTH.traffic, {
         y: this.rng.between(330, 740),
         scale,
-        alpha: 0.78,
-        tint: 0xf0a7a0,
+        alpha: 1,
         ownSpeed: this.rng.realInRange(-10, 25),
         swayAmp: this.rng.realInRange(8, 22),
         tumble: this.rng.realInRange(0.25, 0.6),
@@ -72,12 +71,12 @@ export class BloodFlow {
       });
     }
 
-    // Ön planda kameraya çok yakın, odak dışı diskler: üst ve alt kenara yakın, görüşü kapatmaz.
+    // Ön planda kameraya çok yakın, odak dışı diskler: yalnızca alt kenarda, ki üstteki
+    // arayüz panellerinin arkasında yarım yamalak kaybolmasınlar ve oyun alanını kapatmasınlar.
     for (let i = 0; i < 4; i++) {
       const f = this.rng.realInRange(PARALLAX.foreground, PARALLAX.foreground + 0.25);
-      const top = i % 2 === 0;
       this.add('disc_cell_blur', f, DEPTH.foreground + 1, {
-        y: top ? this.rng.between(90, 210) : this.rng.between(900, 1010),
+        y: this.rng.between(900, 1010),
         scale: this.rng.realInRange(0.95, 1.4),
         alpha: 0.92,
         ownSpeed: this.rng.realInRange(10, 40),
@@ -125,7 +124,6 @@ export class BloodFlow {
       y: number;
       scale: number;
       alpha: number;
-      tint?: number;
       ownSpeed: number;
       swayAmp: number;
       tumble: number;
@@ -139,7 +137,6 @@ export class BloodFlow {
       .setAlpha(o.alpha)
       .setScrollFactor(f, 1)
       .setDepth(depth);
-    if (o.tint !== undefined) sprite.setTint(o.tint);
     this.drifters.push({
       sprite,
       f,

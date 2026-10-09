@@ -20,14 +20,15 @@ export const PARALLAX = {
 } as const;
 
 /** Ana düzlemdeki tavan ve zemin bantlarının dünya içindeki konumu (ASSET_MANIFEST.md A). */
-export const CEILING_BAND = { y: 0, height: 340, edgeY: 210 } as const;
-export const FLOOR_BAND = { y: 720, height: 360, edgeY: 840 } as const;
+export const CEILING_BAND = { y: 0, height: 340 } as const;
+export const FLOOR_BAND = { y: 720, height: 360 } as const;
 
 /**
- * Denizaltının merkezinin dolaşabileceği dikey aralık. Tavan konturu en fazla ~260'a,
- * zemin konturu en az ~780'e iner; denizaltının görünür yarı yüksekliği ~85 px.
+ * Denizaltının merkezinin dolaşabileceği dikey aralık. Tavan konturu en fazla ~266'ya iner,
+ * kubbe tepesi merkezin ~107 px üstünde. En altta gövde zemindeki ilk tümsek sırasına
+ * 20–30 px gömülür, böylece "iniş" havada asılı kalmaz.
  */
-export const LUMEN = { top: 360, bottom: 690 } as const;
+export const LUMEN = { top: 375, bottom: 735 } as const;
 
 /** Görüntü katmanlarının çizim sırası. */
 export const DEPTH = {
@@ -43,14 +44,17 @@ export const DEPTH = {
   vignette: 90,
 } as const;
 
+/** Başlıklar, düğmeler ve kısa etiketler için yuvarlak, sıcak yazı tipi. */
 export const FONT_FAMILY = '"Baloo 2", "Trebuchet MS", sans-serif';
+/** Referanstaki altyazı kutuları sade bir grotesk kullanır (Arial benzeri: Arimo). */
+export const CAPTION_FONT = '"Arimo", "Arial", "Liberation Sans", sans-serif';
 
 export const COLORS = {
   panelFill: 0xf9e9d0,
-  panelEdge: 0x463d32,
-  text: '#2b241d',
+  panelEdge: 0x2e241c,
+  text: '#1b1714',
   textSoft: '#5a4c3d',
-  badge: 0x1f2433,
+  badge: 0x0d1424,
   accent: 0xcf2c43,
   maroon: 0x3a0c14,
 } as const;

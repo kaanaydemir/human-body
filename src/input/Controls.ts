@@ -3,8 +3,14 @@ import Phaser from 'phaser';
 /**
  * WASD / ok tuşları ile hareket, E etkileşim, Boşluk tarama.
  * ESC (duraklatma) HUD sahnesinde dinlenir, çünkü duraklatılan sahnenin update'i çalışmaz.
+ *
+ * E ve Boşluk olay dinleyicisiyle kuyruğa alınır: kare başına JustDown yoklaması, basma ve
+ * bırakma aynı karede işlendiğinde (yavaş cihazda kısa bir dokunuş) basışı kaçırır.
  */
 export class Controls {
+  private interactQueued = false;
+  private scanQueued = false;
+
   private readonly keys: Record<
     'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'E' | 'SPACE',
     Phaser.Input.Keyboard.Key
@@ -29,6 +35,8 @@ export class Controls {
       },
       true,
     ) as Controls['keys'];
+    this.keys.E.on('down', () => (this.interactQueued = true));
+    this.keys.SPACE.on('down', () => (this.scanQueued = true));
   }
 
   /** -1…1 yatay ve dikey yön (ekran koordinatı: aşağı pozitif). */
@@ -39,16 +47,24 @@ export class Controls {
     return { x, y };
   }
 
-  get interactPressed(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.E);
+  /** Son okumadan beri E'ye basıldı mı? (Okuyunca sıfırlanır.) */
+  consumeInteract(): boolean {
+    const v = this.interactQueued;
+    this.interactQueued = false;
+    return v;
   }
 
-  get scanPressed(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
+  /** Son okumadan beri Boşluk'a basıldı mı? (Okuyunca sıfırlanır.) */
+  consumeScan(): boolean {
+    const v = this.scanQueued;
+    this.scanQueued = false;
+    return v;
   }
 
-  /** Duraklatmadan dönünce takılı kalmış tuş durumlarını temizler. */
+  /** Duraklatmadan dönünce takılı kalmış tuş durumlarını ve bekleyen basışları temizler. */
   reset(): void {
     for (const key of Object.values(this.keys)) key.reset();
+    this.interactQueued = false;
+    this.scanQueued = false;
   }
 }
